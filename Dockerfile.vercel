@@ -2,16 +2,22 @@ FROM dunglas/frankenphp:1-php8.3
 
 WORKDIR /app
 
-# The checker scripts all call curl_init() / curl_exec()
+# Install curl extension
 RUN install-php-extensions curl
 
-# Production PHP config
-RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
-
-# App files
+# Copy all files
 COPY . /app
 
-# Caddy config
+# Vercel containers run as user 1000. 
+# We must give this user permission to write cookie.txt and read the files.
+RUN chown -R 1000:1000 /app && chmod -R 775 /app
+
+# Caddy needs writable directories for its config and data. 
+# Vercel has a read-only root, so we route them to /tmp
+ENV XDG_CONFIG_HOME=/tmp/config
+ENV XDG_DATA_HOME=/tmp/data
+
+# Copy Caddyfile
 COPY Caddyfile /etc/frankenphp/Caddyfile
 
 EXPOSE 80
